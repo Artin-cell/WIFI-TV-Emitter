@@ -68,6 +68,12 @@ ESP32-S3 оцифровывает аналоговый сигнал через P
 - 🧠 Плата на ESP32-S3 (проверено на плате типа ESP32-S3-DevKitC-1)
 - 🎚️ Модуль [PCM1808](https://aliexpress.ru/item/1005012718811058.html?shpMethod=CAINIAO_SUPER_ECONOMY&sku_id=12000059136057404&spm=a2g2w.productlist.search_results.0.6d114a68umo8Sn) (I2S АЦП)
 - 🔊 Кабель или гнездо 3,5 мм для выхода наушников ТВ
+<table align="center">
+  <tr>
+    <td align="center"><img src="media/ESP32-S3.jpg" width="300" alt="ESP32-S3"><br><b>ESP32-S3</b></td>
+    <td align="center"><img src="media/PCM1808.jpg" width="300" alt="PCM1808"><br><b>PCM1808</b></td>
+  </tr>
+</table>
 
 Названия пинов у разных модулей PCM1808 отличаются, сверяйся с маркировкой на своей плате.
 

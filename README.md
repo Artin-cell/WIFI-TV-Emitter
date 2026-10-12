@@ -69,6 +69,12 @@ The ESP32-S3 digitizes the analog signal through the PCM1808 over I2S and pushes
 - 🧠 ESP32-S3 dev board (tested on an ESP32-S3-DevKitC-1 style board)
 - 🎚️ [PCM1808](https://aliexpress.ru/item/1005012718811058.html?shpMethod=CAINIAO_SUPER_ECONOMY&sku_id=12000059136057404&spm=a2g2w.productlist.search_results.0.6d114a68umo8Sn) I2S ADC module
 - 🔊 3.5 mm cable or jack for the TV headphone output
+<table align="center">
+  <tr>
+    <td align="center"><img src="media/ESP32-S3.jpg" width="300" alt="ESP32-S3"><br><b>ESP32-S3</b></td>
+    <td align="center"><img src="media/PCM1808.jpg" width="300" alt="PCM1808"><br><b>PCM1808</b></td>
+  </tr>
+</table>
 
 Pin names differ between PCM1808 modules, so check the silkscreen on yours.
 
