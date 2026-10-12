@@ -92,7 +92,7 @@ Pin names differ between PCM1808 modules, so check the silkscreen on yours.
 | 🔊 Input | RIN | jack ring (right) |
 | 🔊 Input | AGND / ground symbol | jack sleeve |
 
-![5V](https://github.com/Artin-cell/WIFI-TV-Emitter/blob/main/media/photo_2026-10-12_13-17-47.jpg?raw=true)
+![5V](https://github.com/Artin-cell/WIFI-TV-Emitter/blob/main/media/5v.jpg?raw=true)
 
 The pins are set at the top of `src/main.cpp`. Avoid GPIO 26–37 on boards that use those pins for PSRAM or flash.
 

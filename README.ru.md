@@ -91,7 +91,7 @@ ESP32-S3 оцифровывает аналоговый сигнал через P
 | 🔊 Вход | RIN | среднее кольцо джека (правый канал) |
 | 🔊 Вход | значок «земля» | гильза джека |
 
-![5V](https://github.com/Artin-cell/WIFI-TV-Emitter/blob/main/media/photo_2026-10-12_13-17-47.jpg?raw=true)
+![5V](https://github.com/Artin-cell/WIFI-TV-Emitter/blob/main/media/5v.jpg?raw=true)
 
 Пины задаются в начале `src/main.cpp`. На платах, где GPIO 26–37 заняты под PSRAM или флеш, эти пины не используй.
 
