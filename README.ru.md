@@ -11,10 +11,6 @@ ESP32-S3 &nbsp;•&nbsp; PCM1808 &nbsp;•&nbsp; Wi-Fi &nbsp;•&nbsp; Web Audio
 [![Arduino](https://img.shields.io/badge/framework-Arduino-00979D?logo=arduino&logoColor=white)](https://github.com/espressif/arduino-esp32)
 [![WebSocket](https://img.shields.io/badge/audio-WebSocket-4c8bf5)](https://developer.mozilla.org/ru/docs/Web/API/Web_Audio_API)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-<<<<<<< HEAD
-=======
-[![Stars](https://img.shields.io/github/stars/Artin-cell/WIFI-TV-Emitter?style=social)](https://github.com/Artin-cell/WIFI-TV-Emitter)
->>>>>>> 3cb411f154b0777db0eb77162b09c404f059f871
 
 [🇬🇧 English](README.md) &nbsp;·&nbsp; 🇷🇺 **Русский**
 
