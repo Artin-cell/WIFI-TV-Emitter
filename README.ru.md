@@ -18,9 +18,7 @@ ESP32-S3 &nbsp;•&nbsp; PCM1808 &nbsp;•&nbsp; Wi-Fi &nbsp;•&nbsp; Web Audio
 
 ---
 
-<!-- Добавь скриншот веб-страницы и раскомментируй:
-<p align="center"><img src="docs/screenshot.png" width="320" alt="Веб-страница"></p>
--->
+<p align="center"><img src="media/screenshot.png" width="320" alt="Web page"></p>
 
 ## 📖 Оглавление
 

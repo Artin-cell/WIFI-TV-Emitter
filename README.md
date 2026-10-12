@@ -19,9 +19,9 @@ ESP32-S3 &nbsp;•&nbsp; PCM1808 &nbsp;•&nbsp; Wi-Fi &nbsp;•&nbsp; Web Audio
 
 ---
 
-<!-- Add a screenshot of the web page and uncomment:
-<p align="center"><img src="docs/screenshot.png" width="320" alt="Web page"></p>
--->
+
+<p align="center"><img src="media/screenshot.png" width="320" alt="Web page"></p>
+
 
 ## 📖 Table of contents
 
