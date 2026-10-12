@@ -1,15 +1,16 @@
 // ESP32-S3 + PCM1808 -> Wi-Fi -> браузер телефона (Web Audio)
 // Схема: джек ТВ -> PCM1808 -> I2S -> ESP32-S3 -> WebSocket -> страница на телефоне
 //
-// Подключиться к Wi-Fi "TV-Audio" и открыть http://192.168.4.1
+// Плата сама подключается к домашнему Wi-Fi (STA_SSID), адрес: http://tvaudio.local или IP из списка клиентов роутера.
+// Если роутер не найден, поднимается своя сеть "TV-Audio": http://192.168.4.1
 
 #include <Arduino.h>
-#include <secret.h>
 #include <WiFi.h>
 #include <ESPmDNS.h>
 #include <WebServer.h>
 #include <WebSocketsServer.h>
 #include <driver/i2s.h>
+#include "secret.h"   // STA_SSID_VALUE и STA_PASS_VALUE (файл не попадает в git)
 
 // ---------- настройки ----------
 // Домашняя сеть: плата подключается к ней сама при старте
@@ -27,14 +28,15 @@ static const int PIN_WS   = 5;   // -> LRC/LRCK
 static const int PIN_DIN  = 6;   // <- OUT/DOUT
 
 static const uint32_t SAMPLE_RATE = 32000;   // Гц
-static const int      FRAMES      = 512;     // кадров (L+R) за один пакет, ~16 мс
+static const int      FRAMES      = 2048;    // кадров за один пакет, ~64 мс (реже пакеты = легче слабому телефону)
 static const int      SHIFT       = 16;      // 16 = как есть; 15/14 = громче в 2/4 раза (с ограничением)
 static const i2s_port_t I2S_PORT  = I2S_NUM_0;
 
-// Шумоподавитель: если сигнал тише порога дольше GATE_HOLD_BLOCKS пакетов (~16 мс каждый),
-// отправляется тишина. Порог смотри в мониторе порта на холостом ходу. 0 = выключен.
-static const int GATE_THRESHOLD   = 200;   // из 32767
-static const int GATE_HOLD_BLOCKS = 25;    // ~0,4 с
+// Шумоподавитель: если сигнал тише порога дольше GATE_HOLD_BLOCKS пакетов (~64 мс каждый),
+// отправляется тишина. Подбирается на слух: выше порог = сильнее подавление шума. 0 = выключен.
+static const int GATE_DEFAULT     = 200;   // начальный порог (из 32767), дальше меняется ползунком
+static const int GATE_HOLD_BLOCKS = 6;     // ~0,4 с
+static volatile int gateThreshold = GATE_DEFAULT;
 
 WebServer server(80);
 WebSocketsServer ws(81);
@@ -58,13 +60,24 @@ static const char PAGE[] PROGMEM = R"rawliteral(
 <div id="s">остановлено</div>
 <div style="margin-top:2em">
  Буфер (задержка): <b id="tv">0.25</b> с<br>
- <input id="t" type="range" min="0.04" max="1" step="0.01" value="0.25" style="width:80%;margin-top:.8em">
+ <input id="t" type="range" min="0.1" max="1" step="0.01" value="0.25" style="width:80%;margin-top:.8em">
  <div style="opacity:.6;font-size:.85em">меньше = меньше задержка, но возможны щелчки</div>
+</div>
+<div style="margin-top:2em">
+ Шумодав (порог): <b id="gv">200</b><br>
+ <input id="g" type="range" min="0" max="1500" step="10" value="200" style="width:80%;margin-top:.8em">
+ <div style="opacity:.6;font-size:.85em">0 = выключен; выше = сильнее глушит тихие звуки и шум</div>
 </div>
 <script>
 const RATE=32000;                // должна совпадать с SAMPLE_RATE в прошивке
 let TARGET=0.25;                 // запас буфера, сек (меняется ползунком)
 let ctx=null, sock=null, next=0, q=[];
+const g=document.getElementById('g'), gv=document.getElementById('gv');
+function sendGate(){
+  gv.textContent=g.value;
+  if(sock && sock.readyState===1) sock.send('g'+g.value);
+}
+g.oninput=sendGate;
 const t=document.getElementById('t'), tv=document.getElementById('tv');
 t.oninput=()=>{
   TARGET=parseFloat(t.value);
@@ -82,12 +95,14 @@ function stop(){
 
 b.onclick=()=>{
   if(ctx){stop();return;}
-  ctx=new (window.AudioContext||window.webkitAudioContext)();
+  const AC=window.AudioContext||window.webkitAudioContext;
+  try{ctx=new AC({sampleRate:RATE,latencyHint:'playback'});}   // без пересчёта частоты на каждом пакете
+  catch(e){ctx=new AC();}
   ctx.resume();
   next=0;
   sock=new WebSocket('ws://'+location.hostname+':81/');
   sock.binaryType='arraybuffer';
-  sock.onopen=()=>{b.textContent='Стоп'; s.textContent='играет';};
+  sock.onopen=()=>{b.textContent='Стоп'; s.textContent='играет'; sendGate();};
   sock.onclose=()=>{stop(); s.textContent='соединение потеряно';};
   sock.onmessage=e=>{
     const i16=new Int16Array(e.data);
@@ -99,7 +114,7 @@ b.onclick=()=>{
     src.buffer=buf; src.connect(ctx.destination);
     const now=ctx.currentTime;
     if(next<now+0.02) next=now+TARGET;   // буфер опустел - накапливаем заново
-    if(next>now+TARGET+0.3) return;      // слишком большое отставание - выбрасываем пакет
+    if(next>now+TARGET+0.5) return;      // слишком большое отставание - выбрасываем пакет
     src.start(next);
     q.push(src);
     src.onended=()=>{q=q.filter(x=>x!==src);};
@@ -118,7 +133,7 @@ static void setupI2S() {
   cfg.channel_format       = I2S_CHANNEL_FMT_RIGHT_LEFT;
   cfg.communication_format = I2S_COMM_FORMAT_STAND_I2S;
   cfg.intr_alloc_flags     = ESP_INTR_FLAG_LEVEL1;
-  cfg.dma_buf_count        = 8;
+  cfg.dma_buf_count        = 16;
   cfg.dma_buf_len          = 256;
   cfg.use_apll             = false;
   cfg.fixed_mclk           = SAMPLE_RATE * 256;   // PCM1808 в slave-режиме ждёт MCLK = 256*fs
@@ -130,49 +145,47 @@ static void setupI2S() {
   pins.data_out_num = I2S_PIN_NO_CHANGE;
   pins.data_in_num  = PIN_DIN;
 
-  esp_err_t e = i2s_driver_install(I2S_PORT, &cfg, 0, nullptr);
-  if (e != ESP_OK) Serial.printf("i2s_driver_install: %d\n", e);
-  e = i2s_set_pin(I2S_PORT, &pins);
-  if (e != ESP_OK) Serial.printf("i2s_set_pin: %d\n", e);
+  i2s_driver_install(I2S_PORT, &cfg, 0, nullptr);
+  i2s_set_pin(I2S_PORT, &pins);
+}
+
+// ---------- приём настроек со страницы ----------
+// Сообщение вида "g200" = порог шумодава 200
+static void onWsEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length) {
+  if (type == WStype_TEXT && length >= 2 && payload[0] == 'g') {
+    int v = atoi((const char*)payload + 1);
+    if (v < 0) v = 0;
+    if (v > 32767) v = 32767;
+    gateThreshold = v;
+  }
 }
 
 // ---------- setup / loop ----------
 void setup() {
-  Serial.begin(115200);
-  delay(1000);
-  Serial.println("\n=== TV audio streamer ===");
-
   setupI2S();
 
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(true);
   WiFi.begin(STA_SSID, STA_PASS);
-  Serial.printf("Подключаюсь к %s ", STA_SSID);
 
   uint32_t t0 = millis();
   while (WiFi.status() != WL_CONNECTED && millis() - t0 < 15000) {
     delay(300);
-    Serial.print(".");
   }
-  Serial.println();
 
   if (WiFi.status() == WL_CONNECTED) {
     WiFi.setSleep(false);   // меньше задержка
-    Serial.printf("Подключено. Открой на телефоне: http://%s\n", WiFi.localIP().toString().c_str());
-    if (MDNS.begin("tvaudio")) {
-      Serial.println("Или по имени: http://tvaudio.local");
-    }
+    MDNS.begin("tvaudio");  // http://tvaudio.local
   } else {
-    Serial.println("Роутер не найден, поднимаю свою сеть.");
     WiFi.mode(WIFI_AP);
     WiFi.softAP(AP_SSID, AP_PASS);
     WiFi.setSleep(false);
-    Serial.printf("Wi-Fi: %s, адрес: http://%s\n", AP_SSID, WiFi.softAPIP().toString().c_str());
   }
 
   server.on("/", []() { server.send_P(200, "text/html; charset=utf-8", PAGE); });
   server.begin();
   ws.begin();
+  ws.onEvent(onWsEvent);
 }
 
 void loop() {
@@ -203,23 +216,14 @@ void loop() {
   }
 
   // Шумоподавитель
-  if (GATE_THRESHOLD > 0) {
-    if (peak >= GATE_THRESHOLD) holdBlocks = GATE_HOLD_BLOCKS;
+  int gate = gateThreshold;
+  if (gate > 0) {
+    if (peak >= gate) holdBlocks = GATE_HOLD_BLOCKS;
     else if (holdBlocks > 0) holdBlocks--;
     if (holdBlocks == 0) memset(pcm, 0, frames * sizeof(int16_t));
   }
 
   if (ws.connectedClients() > 0) {
     ws.broadcastBIN((uint8_t*)pcm, frames * sizeof(int16_t));
-  }
-
-  // раз в секунду печатаем уровень сигнала - удобно для проверки подключения
-  static uint32_t t = 0;
-  static int32_t maxPeak = 0;
-  if (peak > maxPeak) maxPeak = peak;
-  if (millis() - t > 1000) {
-    t = millis();
-    Serial.printf("уровень: %ld / 32767, клиентов: %u\n", (long)maxPeak, ws.connectedClients());
-    maxPeak = 0;
   }
 }
