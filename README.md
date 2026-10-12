@@ -59,7 +59,7 @@ flowchart LR
 
 The ESP32-S3 digitizes the analog signal through the PCM1808 over I2S and pushes it to the browser over a WebSocket. The page plays it with the Web Audio API.
 
-> [!NOTE]
+
 > **Why not connect to the headphones directly?** Bluetooth headphones use Classic Bluetooth (A2DP). The ESP32-S3 only has Bluetooth LE, so it cannot stream audio to them, and the phone acts as the bridge. A classic ESP32 (WROOM/WROVER) can do A2DP directly with a library such as [ESP32-A2DP](https://github.com/pschatzmann/ESP32-A2DP), but that is not what this project does.
 
 ## 🔌 Hardware and wiring
@@ -67,14 +67,14 @@ The ESP32-S3 digitizes the analog signal through the PCM1808 over I2S and pushes
 **You need:**
 
 - 🧠 ESP32-S3 dev board (tested on an ESP32-S3-DevKitC-1 style board)
-- 🎚️ [PCM1808](https://www.ti.com/product/PCM1808) I2S ADC module
+- 🎚️ [PCM1808](https://aliexpress.ru/item/1005012718811058.html?shpMethod=CAINIAO_SUPER_ECONOMY&sku_id=12000059136057404&spm=a2g2w.productlist.search_results.0.6d114a68umo8Sn) I2S ADC module
 - 🔊 3.5 mm cable or jack for the TV headphone output
 
 Pin names differ between PCM1808 modules, so check the silkscreen on yours.
 
 | | PCM1808 | ESP32-S3 / other |
 |---|---|---|
-| ⚡ Power | +5V | 5V |
+| ⚡ Power | +5V (check that your board actually outputs 5V on this pin and does not only accept it; the photo below shows where to take 5V from) | 5V |
 | ⚡ Power | 3.3 | 3V3 |
 | ⚡ Power | GND | GND |
 | 🧷 Mode | MD0, MD1, FMT | GND (slave mode, I2S format) |
@@ -85,6 +85,8 @@ Pin names differ between PCM1808 modules, so check the silkscreen on yours.
 | 🔊 Input | LIN | jack tip (left) |
 | 🔊 Input | RIN | jack ring (right) |
 | 🔊 Input | AGND / ground symbol | jack sleeve |
+
+![5V](https://github.com/Artin-cell/WIFI-TV-Emitter/blob/main/media/photo_2026-10-12_13-17-47.jpg?raw=true)
 
 The pins are set at the top of `src/main.cpp`. Avoid GPIO 26–37 on boards that use those pins for PSRAM or flash.
 
@@ -176,10 +178,4 @@ Use the IP address instead of `tvaudio.local`, or turn off mobile data.
 
 ## 📄 License
 
-Add a license of your choice (for example MIT), and the badge at the top will pick it up.
-
-<div align="right">
-
-[⬆️ Back to top](#-wifi-tv-emitter)
-
-</div>
+Released under the [MIT License](LICENSE).
